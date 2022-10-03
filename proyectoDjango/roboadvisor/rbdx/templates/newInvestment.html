@@ -11,14 +11,14 @@
 </head>
 <body>
 
-{% if not queryBool %}
+
  <form method="POST" class="post-form">{% csrf_token %}
         {{ form1.as_p }}
         <button type="submit" name="alpacaCredentials" class="save btn btn-default">Save</button>
     </form>
-{% endif %}
 
-{% if queryBool %}
+
+
  <form action="{% url 'loadIndexes' %}" method="post">
 {% csrf_token %}
  <button type="submit" name='loadIndexes' value='loadIndexes'>Load indexes</button>
@@ -38,7 +38,7 @@
     </select>
     <input type="submit" name="loadIndexes" value="Select">
 </form>
-{% endif %}
+
 
 
 
