@@ -7,11 +7,7 @@
 </head>
 <body>
 
-<form action = "" method = "post">
-    {% csrf_token %}
-    {{form }}
-    <input type="submit" value="Confirm">
-</form>
+{{ user.get_username }}
 
 </body>
 </html>

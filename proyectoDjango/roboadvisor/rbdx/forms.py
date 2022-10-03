@@ -1,10 +1,11 @@
 from django import forms
 from django.db import models
-from .models import User
+from .models import *
 from django.forms import ModelForm,Textarea
+import alpaca_trade_api as tradeapi
 
+class AccountForm(forms.ModelForm):
 
-class UserForm(ModelForm):
-	class Meta:
-		model=User
-		fields = '__all__'
+    class Meta:
+        model = Account
+        fields = ('name', 'key_id', 'secret_key',)
