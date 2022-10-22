@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+
+<main>
+  <div class="container-fluid px-4">
+    <h1 class="mt-4">Account</h1>
+
+
+    <div class="card mb-4">
+      <div class="card-header">
+        <i class="fas fa-table me-1"></i>
+        Table
+      </div>
+      <div class="card-body">
+        <table id="datatablesSimple">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Index</th>
+              <th>Balance</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+
+          <tfoot>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Index</th>
+              <th>Balance</th>
+              <th>Details</th>
+            </tr>
+          </tfoot>
+
+          <tbody>
+            {% for account in accounts %}
+            <tr>
+              <td>{{ account.id }}</td>
+              <td>{{ account.name }}</td>
+              <td>{{ account.index }}</td>
+              <td>{{ account.balance }}</td>
+              <td>
+                <form action="/showAccount/{{account.id}}">
+                  <input type="submit" value="+" />
+                </form>
+              </td>
+
+            </tr>
+            {% endfor %}
+          </tbody>
+
+        </table>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-xl-3 col-md-6">
+        <div class="card bg-primary text-white mb-4">
+          <div class="card-body">New Account-Index</div>
+
+          <a class="small text-white stretched-link" href="/newInvestment_setAccount"></a>
+
+        </div>
+      </div>
+
+
+      <div class="col-xl-3 col-md-6">
+        <div class="card bg-success text-white mb-4">
+          <div class="card-body">Rebalance portfolio</div>
+
+          <a class="small text-white stretched-link" href="/rebalanceAll"></a>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+
+</main>
+
+
+
+
+{% endblock %}

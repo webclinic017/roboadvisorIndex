@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+
+
+{% block content %}
+
+<div class="card mb-4">
+
+    <div class="card-header">
+        <h2>New investment - Index</h2>
+    </div>
+    <div class="card-body">
+{% if booInd is False %}
+        <form action="{% url 'loadIndexes' pk=account.pk%}" method="post">
+            {% csrf_token %}
+            <button type="submit" name='loadIndexes' value='loadIndexes'>Load indexes</button>
+        </form>
+
+        <form action="{% url 'newInvestment_setIndex' pk=account.pk%}" method="post">
+          {% csrf_token %}
+          <select name="index">
+           {% for index in results %}
+           <option
+           value="{{ index }}"
+           {% if selected_index == index %}
+           selected="selected"
+           {% endif %}
+           >{{ index }}</option>
+           {% endfor %}
+       </select>
+   </br>
+</br>
+<button class="btn btn-primary" name="newInvestment_setIndex" value='newInvestment_setIndex' type="submit">Save</button>
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+    </ul>
+{% endif %}
+</form>
+
+{% else %}
+<h5>This account has an index assigned.</h5>
+{% endif %}
+
+
+
+
+</div>
+</div>
+{% endblock %}

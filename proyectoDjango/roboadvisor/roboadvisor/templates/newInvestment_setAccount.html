@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load static %}
+
+
+{% block content %}
+
+<div class="card mb-4">
+
+    <div class="card-header">
+        <h2>New investment - Account</h2>
+        <h5>In the name field, it is recommended to use the e-mail address associated with the Alpaca account.</h5>
+    </div>
+    <div class="card-body">
+
+       <form action="{% url 'newInvestment_setAccount' %}" method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-primary" name="alpacaCredentials" type="submit">Save</button>
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </form>
+
+</div>
+</div>
+{% endblock %}

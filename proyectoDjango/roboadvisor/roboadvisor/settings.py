@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'debug_toolbar',
-    'rbdx',
+    'roboadvisor',
 ]
 
 MIDDLEWARE = [
@@ -103,8 +103,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-AUTH_USER_MODEL = 'rbdx.UserModel'
-AUTHENTICATION_BACKENDS = ('rbdx.views.MyAuthBackend','django.contrib.auth.backends.ModelBackend',)
+AUTH_USER_MODEL = 'roboadvisor.UserModel'
+AUTHENTICATION_BACKENDS = ('roboadvisor.views.MyAuthBackend','django.contrib.auth.backends.ModelBackend',)
 
 
 INTERNAL_IPS = [
@@ -128,11 +128,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 STATIC_URL = '/static/'
+
+# Add these new lines
 STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, "rbdx/static/"),
+    os.path.join(BASE_DIR, 'static'),
 )
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+SECURE_CROSS_ORIGIN_OPENER_POLICY='same-origin-allow-popups'
+
