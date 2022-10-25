@@ -1,65 +1,72 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db.models.fields.related import OneToOneField
+from django.contrib.auth.models import User
 from django.utils import timezone
 from enum import Enum 
 import datetime
 
 
-class MyUserManager(BaseUserManager):
-	use_in_migrations = True
-	
-	# python manage.py createsuperuser
-	def create_superuser(self, email, is_staff, password):
-		user = self.model(
-						  email = email,                         
-						  is_staff = is_staff,
-						  )
-		user.set_password(password)
-		user.save(using=self._db)
-		return user
+#class MyUserManager(BaseUserManager):
+#	use_in_migrations = True
+#	
+#	# python manage.py createsuperuser
+#	def create_superuser(self, email, is_staff, password):
+#		user = self.model(
+#						  email = email,                         
+#						  is_staff = is_staff,
+#						  )
+#		user.set_password(password)
+#		user.save(using=self._db)
+#		return user
 
-class UserModel(AbstractBaseUser):
-	sys_id = models.AutoField(primary_key=True, blank=True)        
-	email = models.EmailField(max_length=127, unique=True, null=False, blank=False)
-	is_staff = models.BooleanField(default=True)
-	is_active = models.BooleanField(default=True)
-	is_premium = models.BooleanField(default=False)
-	
-	objects = MyUserManager()
+#class UserModel(AbstractBaseUser):
+#	sys_id = models.AutoField(primary_key=True, blank=True)        
+#	email = models.EmailField(max_length=127, unique=True, null=False, blank=False)
+#	is_staff = models.BooleanField(default=True)
+#	is_active = models.BooleanField(default=True)
+#	is_premium = models.BooleanField(default=False)
+#	
+#	objects = MyUserManager()
+#
+#	USERNAME_FIELD = "email"
+#	# REQUIRED_FIELDS must contain all required fields on your User model, 
+#	# but should not contain the USERNAME_FIELD or password as these fields will always be prompted for.
+#	REQUIRED_FIELDS = ['is_staff']
 
-	USERNAME_FIELD = "email"
-	# REQUIRED_FIELDS must contain all required fields on your User model, 
-	# but should not contain the USERNAME_FIELD or password as these fields will always be prompted for.
-	REQUIRED_FIELDS = ['is_staff']
+#	class Meta:
+#		app_label = "roboadvisor"
+#		db_table = "user"
 
-	class Meta:
-		app_label = "roboadvisor"
-		db_table = "user"
+#	def __str__(self):
+#		return self.email
 
-	def __str__(self):
-		return self.email
+#	def get_full_name(self):
+#		return self.email
 
-	def get_full_name(self):
-		return self.email
+#	def get_short_name(self):
+#		return self.email
 
-	def get_short_name(self):
-		return self.email
-
-
-	# this methods are require to login super user from admin panel
-	def has_perm(self, perm, obj=None):
-		return self.is_staff
 
 	# this methods are require to login super user from admin panel
-	def has_module_perms(self, app_label):
-		return self.is_staff
+#	def has_perm(self, perm, obj=None):
+#		return self.is_staff
+
+	# this methods are require to login super user from admin panel
+#	def has_module_perms(self, app_label):
+#		return self.is_staff
 
 
 #PLANS = (
 	#('F', 'Free'),
 	#('P', 'Premium'),
 #)
+
+class Client(models.Model):
+	user = models.OneToOneField(User, on_delete=models.CASCADE)
+	is_premium = models.BooleanField(default=False)
+	def __str__(self):
+		return self.user.username
 
 
 class Account(models.Model):
@@ -68,7 +75,8 @@ class Account(models.Model):
 	name=models.CharField(max_length=200, default=None, unique=True)
 	balance = models.FloatField()
 	totalEquity = models.FloatField()
-	user = models.ForeignKey(UserModel, on_delete=models.CASCADE, default=None)
+	#user = models.ForeignKey(UserModel, on_delete=models.CASCADE, default=None)
+	user = models.ForeignKey(User, on_delete=models.CASCADE, default=None)
 	#user = OneToOneField(UserModel, on_delete=models.CASCADE)
 	#plan = models.CharField(max_length=1, choices=PLANS, default='F')
 	def __str__(self):
@@ -113,16 +121,16 @@ class Order(models.Model):
 
 
 class Purchase(models.Model):
-    id = models.CharField(primary_key= True, max_length=100)
-    status = models.CharField(max_length=100)
-    codeStatus = models.CharField(max_length=100)
-    totalPurchase = models.DecimalField(max_digits=5 ,decimal_places= 2)
-    nameClient = models.CharField(max_length=100)
-    lastNameClient = models.CharField(max_length=100)
-    emailClient = models.EmailField(max_length=100)
-    adressClient = models.CharField(max_length=100)
-    date = models.DateField(default=timezone.now)
-    user = OneToOneField(UserModel, on_delete=models.CASCADE)
+	id = models.CharField(primary_key= True, max_length=100)
+	status = models.CharField(max_length=100)
+	codeStatus = models.CharField(max_length=100)
+	totalPurchase = models.DecimalField(max_digits=5 ,decimal_places= 2)
+	nameClient = models.CharField(max_length=100)
+	lastNameClient = models.CharField(max_length=100)
+	emailClient = models.EmailField(max_length=100)
+	adressClient = models.CharField(max_length=100)
+	date = models.DateField(default=timezone.now)
+	client = OneToOneField(Client, on_delete=models.CASCADE, default=None)
 
-    def __str__(self):
-        return self.nameCliente
+	def __str__(self):
+		return self.nameCliente

@@ -19,7 +19,7 @@
 <body class="sb-nav-fixed">
     <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
         <!-- Navbar Brand-->
-        <a class="navbar-brand ps-3">Roboadvisor</a>
+        <a class="navbar-brand ps-3" href="/home">Roboadvisor</a>
         <!-- Sidebar Toggle-->
         <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#!"><i class="fas fa-bars"></i></button>
         <!-- Navbar Search-->
@@ -31,7 +31,12 @@
             <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-user fa-fw"></i></a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                    <li><a class="dropdown-item" href="#!">Logout</a></li>
+                    <li>
+                        <form class="logout-link" action="/logout/" method="POST">
+                            {% csrf_token %}
+                            <input type="submit" value="Logout">
+                        </form>
+                    </li>
                 </ul>
             </li>
         </ul>
@@ -61,19 +66,21 @@
                 </div>
                 <div class="sb-sidenav-footer">
                     <div class="small">Logged in as:
-                        {% if user.is_premium%}
+                        {% if not user.is_authenticated %}
+                        UNAUTHENTICATED
+                        {% elif user.client.is_premium%}
                         PREMIUM
-                        {% else %}
+                        {% elif not user.client.is_premium %}
                         FREE
+                        
                     {% endif %}</div>
-                    {{user.email}}  
+                    {{user.username}}  
                 </div>
 
             </nav>
 
         </div>
         <div id="layoutSidenav_content">
-
         {% block content %}{% endblock %}
 
 

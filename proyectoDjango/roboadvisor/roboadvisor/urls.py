@@ -16,13 +16,22 @@ from .views import loadIndexes
 from .views import checkout
 from .views import payment
 from .views import pricing
-from .views import rebalanceAll
+#from .views import rebalanceAll
+from .views import signupView
+from .views import loginView
+from .views import logoutView
+from .views import home
 
 urlpatterns = [
 	path('__debug__/', include('debug_toolbar.urls')),
-	path('', RedirectView.as_view(url=reverse_lazy('admin:index'))),
+	path('', RedirectView.as_view(url=reverse_lazy('login'))),
 	path('admin/', admin.site.urls),
-	path('home/', views.home,),
+	#path('base/', views.base),
+	path('home/', views.home),
+	path('signup/', signupView, name='signup'),
+	path('login/', loginView, name='login'),
+	path('logout/', logoutView, name='logout'),
+	path('showAccount/<int:pk>', showAccount, name='showAccount'),
 	#path('newUser/', newUser),
 	path('manageAccount/', manageAccount),
 	path('newInvestment_setAccount/', newInvestment_setAccount, name='newInvestment_setAccount'),
@@ -33,7 +42,7 @@ urlpatterns = [
 	path('checkout/', checkout),
 	path('payment/', payment),
 	path('pricing/', pricing),
-	path('rebalanceAll/<int:pk>', rebalanceAll, name='rebalanceAll'),
+	#path('rebalanceAll/', rebalanceAll, name='rebalanceAll'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:

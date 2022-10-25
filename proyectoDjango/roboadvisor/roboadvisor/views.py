@@ -6,7 +6,8 @@ from django.shortcuts import redirect
 #from .forms import UserForm
 #from .models import User
 from .forms import AccountForm
-from .models import UserModel
+#from .models import UserModel
+from .models import Client
 from .models import Account
 from .models import Index
 from .models import IndexShort
@@ -31,45 +32,83 @@ from paypalcheckoutsdk.orders import OrdersGetRequest, OrdersCaptureRequest
 import sys, json
 import finnhub
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth import login, logout
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class MyAuthBackend(object):
-	def authenticate(self, email, password):    
-		try:
-			user = UserModel.objects.get(email=email)
-			if user.check_password(password):
-				return user
-				return HttpResponseRedirect('manageAccount.html')
-			else:
-				return None
-		except UserModel.DoesNotExist:
-			logging.getLogger("error_logger").error("user with login %s does not exists " % login)
-			return None
-		except Exception as e:
-			logging.getLogger("error_logger").error(repr(e))
-			return None
+#class MyAuthBackend(object):
+#	def authenticate(self, email, password):    
+#		try:
+#			user = UserModel.objects.get(email=email)
+#			if user.check_password(password):
+#				return user
+#			else:
+#				return None
+#		except UserModel.DoesNotExist:
+#			logging.getLogger("error_logger").error("user with login %s does not exists " % login)
+#			return None
+#		except Exception as e:
+#			logging.getLogger("error_logger").error(repr(e))
+#			return None
 
-	def get_user(self, user_id):
-		try:
-			user = UserModel.objects.get(sys_id=user_id)
-			if user.is_active:
-				return user
-			return None
-		except UserModel.DoesNotExist:
-			logging.getLogger("error_logger").error("user with %(user_id)d not found")
-			return None
+#	def get_user(self, user_id):
+#		try:
+#			user = UserModel.objects.get(sys_id=user_id)
+#			if user.is_active:
+#				return user
+#			return None
+#		except UserModel.DoesNotExist:
+#			logging.getLogger("error_logger").error("user with %(user_id)d not found")
+#			return None
+
+def signupView(request):
+	if request.method == "POST":
+		form = UserCreationForm(request.POST)
+		if form.is_valid():
+			user=form.save()
+			Client.objects.create(is_premium=False, user_id=user.id)
+			login(request,user)
+			return redirect("/home")
+	else:
+		form = UserCreationForm()
+	context = {"form": form}
+	return render(request, 'signup.html', context)
+
+def loginView(request):
+	if request.method == "POST":
+		form = AuthenticationForm(data=request.POST)
+		if form.is_valid():
+			user=form.get_user()
+			login(request,user)
+			return redirect("/home")
+	else:
+		form = AuthenticationForm()
+	context = {"form": form}
+	return render(request, 'login.html', context)
+
+
+def logoutView(request):
+	if request.method == "POST":
+		logout(request)
+		return redirect("/home")
+
+
+def base(request):
+	user = request.user
+	print(user.is_authenticated)
+	context = {"user": user}
+	return render(request, 'base.html', context)
 
 def home(request):
 	user = request.user
 	context = {"user": user}
-	return render(request, 'base.html', context)
+	return render(request, 'home.html', context)
 
-@login_required
 def manageAccount(request):
 	user = request.user
-	user_id = user.sys_id
+	user_id = user.id
 	accounts = Account.objects.filter(user_id=user_id)
 	context = {"accounts": accounts}
 	return render(request, 'manageAccount.html', context)
@@ -78,7 +117,7 @@ def manageAccount(request):
 def newInvestment_setAccount(request):
 	selected_index = None
 	user = request.user
-	user_id = user.sys_id
+	user_id = user.id
 	query = Account.objects.filter(user_id=user_id)
 	queryBool = query.exists()
 	account=None
@@ -123,7 +162,7 @@ def newInvestment_setIndex(request, pk):
 
 	selected_index = None
 	user = request.user
-	user_id = user.sys_id
+	user_id = user.id
 
 	account= get_object_or_404(Account, pk=pk)
 
@@ -132,6 +171,8 @@ def newInvestment_setIndex(request, pk):
 	directorio = "C:/Users/Josema/Desktop/TFG/Datos/"
 
 	finnhub_client = finnhub.Client(api_key="cci63qiad3ibcn4bhk6g")
+
+	comissionPerBuy=0.01
 
 	contadorT=0
 	contadorY=0
@@ -161,7 +202,7 @@ def newInvestment_setIndex(request, pk):
 
 				tabla = pd.DataFrame(columns = ['Symbol', 'MarketCap', 'Price', 'Weight'])
 
-				if user.is_premium is False:
+				if user.client.is_premium is False:
 					for item in all_symbols:
 						try:
 							symbol=item.replace('.', '-', 1)
@@ -223,7 +264,7 @@ def newInvestment_setIndex(request, pk):
 				tabla['Weight'] = actual_weights
 
 				for i in tabla.index:
-					cl=(tabla['Weight'][i]*account.totalEquity/100)/tabla['Price'][i]
+					cl=(tabla['Weight'][i]*account.totalEquity/100)/(tabla['Price'][i]+tabla['Price'][i]*comissionPerBuy)
 					
 
 					alpaca = tradeapi.REST(account.key_id,
@@ -277,7 +318,7 @@ def newInvestment_setIndex(request, pk):
 @login_required
 def showAccount(request, pk):
 	user = request.user
-	user_id = user.sys_id
+	user_id = user.id
 	ind = Index.objects.get(account_id=pk)
 	stocks = Stock.objects.filter(index_id=ind.id)
 	orders = []
@@ -292,7 +333,7 @@ def loadIndexesData(request):
 	directorio = "C:/Users/Josema/Desktop/TFG/Datos"
 	list=[]
 	user = request.user
-	user_id = user.sys_id
+	user_id = user.id
 	query = Account.objects.filter(user_id=user_id).values()
 	queryBool = query.exists()
 	results = IndexShort.objects.all()
@@ -326,9 +367,9 @@ def listIndexes(request):
 
 
 @login_required
-def rebalanceAll(request, pk):
+def rebalanceAll(request):
 	user = request.user
-	user_id = user.sys_id
+	user_id = user.id
 
 	account= get_object_or_404(Account, pk=pk)
 	index = Index.objects.get(Account, pk=pk)
@@ -342,11 +383,11 @@ def rebalanceIndex(pk):
 @login_required
 def checkout(request):
 	user = request.user
-	user_id = user.sys_id
-	boo = user.is_premium
+	user_id = user.id
+	boo = user.client.is_premium
 
 	try:
-		if user.is_premium is not True:
+		if user.client.is_premium is not True:
 			context = {"boo":boo}
 			return render(request, 'checkout.html', context)
 
@@ -369,14 +410,13 @@ def pricing(request):
 def payment(request):
 	try:
 		user = request.user
-		user_id = user.sys_id
+		user_id = user.id
 
 		data = json.loads(request.body)
 		order_id = data['orderID']
 
 		detail = GetOrder().get_order(order_id)
 		detailPrice = float(detail.result.purchase_units[0].amount.value)
-		print(detailPrice)
 
 		if detailPrice == 10:
 			trx = CaptureOrder().capture_order(order_id, debug=True)
@@ -389,10 +429,10 @@ def payment(request):
 				lastNameClient= trx.result.payer.name.surname, 
 				emailClient= trx.result.payer.email_address, 
 				adressClient= trx.result.purchase_units[0].shipping.address.address_line_1,
-				user=user)
+				client=user.client)
 			purchase.save()
 
-			UserModel.objects.filter(pk=user_id).update(is_premium=True)
+			Client.objects.filter(user_id=user_id).update(is_premium=True)
 
 			data = {
 				"message": "=D"
@@ -404,7 +444,7 @@ def payment(request):
 			}
 			return JsonResponse(data)
 	except Exception as e:
-		#logger.exception('Error with: '+ str(e))
+		logger.exception('Error with: '+ str(e))
 		messages.add_message(request, messages.ERROR, "You already have an active subscription.")
 		return render(request, 'checkout.html')
 
@@ -419,7 +459,7 @@ class PayPalClient:
 		self.client_secret = "EA111C76kHQiKGyECS4fwDv7rjzivmpdc3Z9GoRwIQOsaEBypYmdGT-6xc5iYqI_uUhLXmLsrzgbBHZR"
 
 		"""Set up and return PayPal Python SDK environment with PayPal access credentials.
-		   This sample uses SandboxEnvironment. In production, use LiveEnvironment."""
+			 This sample uses SandboxEnvironment. In production, use LiveEnvironment."""
 
 		self.environment = SandboxEnvironment(client_id=self.client_id, client_secret=self.client_secret)
 
@@ -450,7 +490,7 @@ class PayPalClient:
 		if isinstance(json_array, list):
 			for item in json_array:
 				result.append(self.object_to_json(item) if  not self.is_primittive(item) \
-							  else self.array_to_json_array(item) if isinstance(item, list) else item)
+								else self.array_to_json_array(item) if isinstance(item, list) else item)
 		return result
 
 	def is_primittive(self, data):
@@ -486,7 +526,7 @@ class GetOrder(PayPalClient):
 
 class CaptureOrder(PayPalClient):
 
-  #2. Set up your server to receive a call from the client
+	#2. Set up your server to receive a call from the client
 	def capture_order(self, order_id, debug=False):
 		request = OrdersCaptureRequest(order_id)
 	#3. Call PayPal to capture an order

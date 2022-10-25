@@ -90,7 +90,9 @@
     <li>All US Stocks</li>
     <li>60 calls/minute</li>
     <li>Unlimited accounts</li>
-    <li class="grey"><a href="/pricing" class="button">Buy</a></li>
+    {% if not user.client.is_premium%}
+    <li class="grey"><a href="/payment/" class="button">Buy</a></li>
+    {% endif %}
   </ul>
 </div>
 

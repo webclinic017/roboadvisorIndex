@@ -103,8 +103,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-AUTH_USER_MODEL = 'roboadvisor.UserModel'
-AUTHENTICATION_BACKENDS = ('roboadvisor.views.MyAuthBackend','django.contrib.auth.backends.ModelBackend',)
+#AUTH_USER_MODEL = 'roboadvisor.UserModel'
+#AUTHENTICATION_BACKENDS = ('roboadvisor.views.MyAuthBackend','django.contrib.auth.backends.ModelBackend',)
 
 
 INTERNAL_IPS = [
@@ -127,7 +127,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
 
 # Add these new lines
 STATICFILES_DIRS = (
