@@ -2,6 +2,7 @@
 {% load static %}
 
 
+
 {% block content %}
 
 <div class="card mb-4">
@@ -11,10 +12,23 @@
     </div>
     <div class="card-body">
 {% if booInd is False %}
-        <form action="{% url 'loadIndexes' pk=account.pk%}" method="post">
+        
+
+        <form action="{% url 'uploadFile' pk=account.pk %}" method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <button type="submit" name='loadIndexes' value='loadIndexes'>Load indexes</button>
+            <p><input id="file" type="file" name="file"></p>
+
+            <label for="upload" class="btn btn-dark">Upload</label>
+            <p><input id="upload" style="visibility:hidden;" type="submit" name="upload"></p>
         </form>
+
+
+
+        <form action="{% url 'loadIndexes' pk=account.pk %}" method="post">
+            {% csrf_token %}
+            <button class="btn btn-secondary" type="submit" name='loadIndexes' value='loadIndexes'>Load indexes</button>
+        </form>
+        </br>
 
         <form action="{% url 'newInvestment_setIndex' pk=account.pk%}" method="post">
           {% csrf_token %}

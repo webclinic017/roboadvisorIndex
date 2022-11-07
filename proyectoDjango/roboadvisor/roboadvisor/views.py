@@ -2,10 +2,12 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
+from django.conf import settings
 
 #from .forms import UserForm
 #from .models import User
 from .forms import AccountForm
+from .forms import UploadFileForm
 #from .models import UserModel
 from .models import Client
 from .models import Account
@@ -14,14 +16,15 @@ from .models import IndexShort
 from .models import Stock
 from .models import Order
 from .models import Purchase
+from .models import UploadFile
 import logging
 import os
 import pandas as pd
 import requests
+from alpaca_trade_api.rest import REST, TimeFrame
 import alpaca_trade_api as tradeapi
 import math
 import yfinance as yf
-from datetime import datetime
 import time
 import pandas_datareader as web
 import logging
@@ -34,6 +37,11 @@ import finnhub
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, logout
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
+import math 
+from statistics import mean
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -109,8 +117,23 @@ def home(request):
 def manageAccount(request):
 	user = request.user
 	user_id = user.id
+
 	accounts = Account.objects.filter(user_id=user_id)
-	context = {"accounts": accounts}
+	portfolioValue = 0
+	balanceChange = 0
+
+	for a in accounts:
+		api = tradeapi.REST(
+		key_id=a.key_id,
+		secret_key=a.secret_key,
+		base_url='https://paper-api.alpaca.markets',
+		api_version='v2')
+		alpacaAccount = api.get_account()
+		portfolioValue = alpacaAccount.portfolio_value
+		balanceChange = float("{:.2f}".format((float(alpacaAccount.equity) - float(alpacaAccount.last_equity))/100))
+		
+
+	context = {"accounts": accounts, "portfolioValue":portfolioValue, "balanceChange":balanceChange}
 	return render(request, 'manageAccount.html', context)
 
 @login_required
@@ -168,11 +191,11 @@ def newInvestment_setIndex(request, pk):
 
 	results = IndexShort.objects.all()
 
-	directorio = "C:/Users/Josema/Desktop/TFG/Datos/"
+	directorio = settings.MEDIA_ROOT
 
 	finnhub_client = finnhub.Client(api_key="cci63qiad3ibcn4bhk6g")
 
-	comissionPerBuy=0.01
+	comissionPerBuy=0.02
 
 	contadorT=0
 	contadorY=0
@@ -190,7 +213,7 @@ def newInvestment_setIndex(request, pk):
 			try:
 				selected_index = request.POST.get("index")
 				#indexShort =  IndexShort.objects.get(symbol=selected_index)
-				df =pd.read_csv(directorio+selected_index+'.csv')
+				df =pd.read_csv(directorio+"/"+selected_index+'.csv')
 				#I = Index.objects.create(symbol=selected_index, marketCap='0', account=account)
 				all_symbols = df['Symbol']
 				symbols = []
@@ -315,22 +338,42 @@ def newInvestment_setIndex(request, pk):
 		context = {"form": form, "results": results, "account":account, "booInd": booInd}
 		return render(request, 'newInvestment_setIndex.html', context)
 
-@login_required
+
+
 def showAccount(request, pk):
 	user = request.user
 	user_id = user.id
+	account=Account.objects.get(id=pk)
+	api = tradeapi.REST(account.key_id, account.secret_key, 'https://paper-api.alpaca.markets', api_version='v2')
+
 	ind = Index.objects.get(account_id=pk)
 	stocks = Stock.objects.filter(index_id=ind.id)
 	orders = []
+	orders1 = []
+	symbols = []
 	for s in stocks:
-		orders.append(Order.objects.get(stock_id=s.id))
+		orders.append(Order.objects.filter(stock_id=s.id))
+		symbols.append(s.symbol)
 
-	context = {"orders": orders}
+	for o in orders:
+		for i in range(0,len(o)):
+			orders1.append(o[i])
+
+	
+
+	numberStocks = stocks.count()
+
+
+	chart7D(stocks, api)
+
+	pieChart(stocks)
+
+	context = {"orders": orders1, "index":ind, "account":account, "numberStocks":numberStocks}
 	return render(request, 'showAccount.html' , context)
 
 @login_required
 def loadIndexesData(request):
-	directorio = "C:/Users/Josema/Desktop/TFG/Datos"
+	directorio = settings.MEDIA_ROOT
 	list=[]
 	user = request.user
 	user_id = user.id
@@ -366,19 +409,268 @@ def listIndexes(request):
 	return render(request, 'manageAccount.html',{'results':results})
 
 
-@login_required
 def rebalanceAll(request):
 	user = request.user
 	user_id = user.id
 
-	account= get_object_or_404(Account, pk=pk)
-	index = Index.objects.get(Account, pk=pk)
+	accounts= Account.objects.filter(user_id=user_id)
 
-	results = IndexShort.objects.all()
+	finnhub_client = finnhub.Client(api_key="cci63qiad3ibcn4bhk6g")
 
-@login_required
-def rebalanceIndex(pk):
-	index = Index.objects.get(Account, pk=pk)
+	comissionPerBuy=0.02
+
+	contadorT=0
+	contadorY=0
+
+	iteraciones=115
+	cont=0
+
+
+
+	if request.method == "POST":
+		if 'rebalanceAll' in request.POST:
+			try:
+				for a in accounts:
+
+					tabla = pd.DataFrame(columns = ['Symbol', 'Market Cap', 'Actual Prices', 'Old Weight' 'Actual Weight', 'Difference'])
+					sellTable = pd.DataFrame(columns = ['Symbol', 'Market Cap', 'Actual Prices', 'Old Weight' 'Actual Weight', 'Difference'])
+					buyTable = pd.DataFrame(columns = ['Symbol', 'Market Cap', 'Actual Prices', 'Old Weight' 'Actual Weight', 'Difference'])
+
+					apiV2 = tradeapi.REST(a.key_id, a.secret_key, 'https://paper-api.alpaca.markets', api_version='v2')
+					alpaca = tradeapi.REST(a.key_id, a.secret_key, 'https://paper-api.alpaca.markets')
+
+					
+					alpacaAccount = apiV2.get_account()
+
+					a.balance = alpacaAccount.equity
+					a.save()
+
+					symbols = []
+					marketCaps = []
+					actualPrices = []
+					oldWeights = []
+					actualWeights = []
+					difference = []
+
+					total_market_cap = 0
+
+					index = Index.objects.get(account_id=a.id)
+					stocks = Stock.objects.filter(index_id=index.id)
+
+
+
+
+
+					orders = apiV2.list_orders(status='filled',
+					#limit=100,
+					#nested=True  # show nested multi-leg orders
+					)
+
+					if orders: 
+						if user.client.is_premium is False:
+							for item in stocks:
+								try:
+
+									oldWeights.append(item.actualWeight)
+									symbol=item.symbol.replace('.', '-', 1)
+
+									ticker_yahoo = yf.Ticker(symbol)
+									data = ticker_yahoo.history()
+									price = data['Close'].iloc[-1]
+									marketCap=web.get_quote_yahoo(symbol)['marketCap'][0]
+										
+
+									marketCaps.append(marketCap)
+									symbols.append(symbol)
+									actualPrices.append(price)
+
+									item.price=price
+									item.marketCap=marketCap
+									item.save()
+
+									total_market_cap=total_market_cap+marketCap
+
+
+								except Exception as e:
+									messages.add_message(request, messages.ERROR, "Error with: "+ symbol + str(e))
+						else:
+							for item in all_symbols:
+								if contadorY>=iteraciones and contadorT<60:
+									time.sleep(61-contadorT)
+									contadorT=0
+									contadorY=0
+				
+								if contadorY<iteraciones:
+									try: 
+										oldWeights.append(item.actualWeight)
+										symbol=item.symbol.replace('.', '-', 1)
+												
+										instanteInicial = time.time()
+												
+										last_quote = finnhub_client.quote(symbol)['c']
+										marketCap=finnhub_client.company_profile2(symbol=symbol)['marketCapitalization']
+												
+										instanteFinal = time.time()
+										tiempo = instanteFinal - instanteInicial
+												
+										contadorY=contadorY+2
+												
+										contadorT=contadorT+tiempo
+
+										marketCaps.append(marketCap)
+										symbols.append(symbol)
+										actualPrices.append(last_quote)
+
+										item.price=last_quote
+										item.marketCap=marketCap
+										item.save()
+
+										total_market_cap=total_market_cap+marketCap
+												
+									except Exception as e:
+										#time.sleep(35)
+										messages.add_message(request, messages.ERROR, "Error with: "+ symbol + str(e))
+							
+							
+						index.marketCap=total_market_cap
+						index.save()
+
+						tabla['Symbol'] = symbols
+						tabla['Market Cap'] = marketCaps
+						tabla['Actual Prices'] = actualPrices
+						tabla['Old Weight'] = oldWeights
+
+
+						for item in marketCaps:
+							actualWeights.append(item/total_market_cap*100)
+					
+						tabla['Actual Weight'] = actualWeights
+
+
+						for item in tabla.index:
+							difference.append(tabla['Actual Weight'][item]-tabla['Old Weight'][item])
+							s = Stock.objects.get(symbol=tabla['Symbol'][item])
+							s.marketCap=tabla['Market Cap'][item]
+							s.save()
+
+						tabla['Difference'] = difference
+
+						listSells=[]
+
+						print(tabla)
+						print("						")
+						print("						")
+						print("						")
+
+						for item in tabla.index:
+							if tabla['Difference'][item]<0:
+								listSells.append(tabla['Symbol'][item])
+
+						for item in listSells:
+							i=tabla.loc[tabla['Symbol'] == item]
+							sellTable = pd.concat([sellTable, pd.DataFrame.from_records(i)], ignore_index=True)
+
+						print(sellTable)
+
+						#ventas = tabla[tabla['Difference'].startswith("-")]
+						#print(ventas)
+						buyTable = tabla.set_index('Symbol').subtract(sellTable.set_index('Symbol'), fill_value=0)
+						print(buyTable)
+						print("						")
+						print("						")
+						print("						")
+
+
+						#VENTAS
+
+						for i in sellTable.index:
+							cl=(abs(sellTable['Difference'][i])*float(a.balance)/100/(sellTable['Actual Prices'][i]+sellTable['Actual Prices'][i]*comissionPerBuy))
+
+							asset = apiV2.get_asset(sellTable['Symbol'][i])
+
+							if asset.fractionable and cl>0:
+								alpaca.submit_order(
+								symbol=sellTable['Symbol'][i],
+								qty=cl,
+								side="sell",
+								type="market",
+								time_in_force='day')
+								print(sellTable['Symbol'][i], cl, "Sell done")
+								#cont=cont+(cl*sellTable['Price'][i])
+
+								O = Order.objects.create(stock=Stock.objects.get(symbol=sellTable['Symbol'][i]), quantity=-cl, price=sellTable['Actual Prices'][i])
+								s1 = Stock.objects.get(symbol=sellTable['Symbol'][i])
+								s1.actualWeight=sellTable['Actual Weight'][i]
+								print(s1, s1.actualWeight)
+								s1.save()
+								print(O)
+
+							if not asset.fractionable and math.floor(cl)>0:
+								alpaca.submit_order(
+								symbol=sellTable['Symbol'][i],
+								qty=math.floor(cl),
+								side="sell",
+								type="market",
+								time_in_force='day')
+								print(sellTable['Symbol'][i], cl, "Sell done")
+								#cont=cont+(cl*sellTable['Price'][i])
+
+								O = Order.objects.create(stock=Stock.objects.get(symbol=sellTable['Symbol'][i]), quantity=-cl, price=sellTable['Actual Prices'][i])
+								s1 = Stock.objects.get(symbol=sellTable['Symbol'][i])
+								s1.actualWeight=sellTable['Actual Weight'][i]
+								print(s1, s1.actualWeight)
+								s1.save()
+								print(O)
+
+						for i in buyTable.index:
+							cl=(buyTable['Difference'][i]*float(a.balance)/100/(buyTable['Actual Prices'][i]+buyTable['Actual Prices'][i]*comissionPerBuy))
+
+
+							asset = apiV2.get_asset(buyTable['Symbol'][i])
+							if asset.fractionable and cl>0:
+								alpaca.submit_order(
+								symbol=buyTable['Symbol'][i],
+								qty=cl,
+								side="buy",
+								type="market",
+								time_in_force='day')
+								cont=cont+(cl*buyTable['Price'][i])
+								O = Order.objects.create(stock=Stock.objects.get(symbol=buyTable['Symbol'][i]), quantity=cl, price=buyTable['Actual Prices'][i])
+								s1 = Stock.objects.get(symbol=buyTable['Symbol'][i])
+								s1.actualWeight=buyTable['Actual Weight'][i]
+								print(s1, s1.actualWeight)
+								s1.save()
+								print(O)
+
+							if not asset.fractionable and math.floor(cl)>0:
+								alpaca.submit_order(
+								symbol=buyTable['Symbol'][i],
+								qty=math.floor(cl),
+								side="buy",
+								type="market",
+								time_in_force='day')
+								cont=cont+(cl*buyTable['Price'][i])
+								O = Order.objects.create(stock=Stock.objects.get(symbol=buyTable['Symbol'][i]), quantity=cl, price=buyTable['Actual Prices'][i])
+								s1 = Stock.objects.get(symbol=buyTable['Symbol'][i])
+								s1.actualWeight=buyTable['Actual Weight'][i]
+								print(s1, s1.actualWeight)
+								s1.save()
+								print(O)
+
+						return redirect("/manageAccount/")
+						return render(request, 'manageAccount.html', context)
+
+						#S = Stock.objects.create(symbol=tabla['Symbol'][i], price=tabla['Price'][i], marketCap=tabla['MarketCap'][i], actualWeight=tabla['Weight'][i], index=I)
+			except Exception as e:
+				#logger.exception('Error with: '+ str(e))
+				messages.add_message(request, messages.ERROR, "Error rebalancing." + str(e))
+				accounts = Account.objects.filter(user_id=user_id)
+				context = {"accounts": accounts, "tabla":tabla}
+				
+				return redirect("/manageAccount/")
+				return render(request, 'manageAccount.html', context)
+
+
 
 @login_required
 def checkout(request):
@@ -548,3 +840,75 @@ class CaptureOrder(PayPalClient):
 		# response.result.payer.name.given_name + " " + response.result.payer.name.surname,
 		# response.result.payer.phone.phone_number.national_number)
 		return response
+
+
+
+def uploadFile(request, pk):
+	if request.method == 'POST':
+		file2 = request.FILES['file']
+		document = UploadFile.objects.create(file=file2)
+		document.save()
+		return redirect("/newInvestment_setIndex/"+str(pk))
+		return render(request, 'newInvestment_setIndex.html')
+	else:
+		return redirect("/newInvestment_setIndex/"+str(pk))
+
+def deleteAccount(request, pk):
+	if request.method == 'POST':
+		account = Account.objects.get(id=pk).delete()
+		return redirect("/manageAccount")
+		return render(request, 'manageAccount.html')
+	else:
+		return redirect("/manageAccount")
+
+
+def chart7D(stocks, api):
+	reg = []
+
+	df = pd.DataFrame(columns = ['Symbol', 'Seven', 'Six', 'Five', 'Four', 'Three', 'Two', 'One'])
+	df.set_index('Symbol')
+
+	today = datetime.now().strftime('%Y-%m-%d')
+	yesterday = (datetime.now()- timedelta(days=1)).strftime('%Y-%m-%d')
+	sevenDaysAgo = (datetime.now()- timedelta(days=10)).strftime('%Y-%m-%d')
+
+	for s in stocks:
+			reg = []
+
+			for i in range(0,7):
+					#reg.append((api.get_bars(s.symbol, TimeFrame.Day, sevenDaysAgo, yesterday, adjustment='raw').df['close'][i])*s.actualWeight)
+					reg.append((yf.download(s.symbol, start=sevenDaysAgo, end=yesterday, progress=False)['Close'][i])*s.actualWeight)
+
+			new_row = {'Symbol':[s.symbol], 'Seven':[reg[0]], 'Six':[reg[1]], 'Five':[reg[2]], 'Four':[reg[3]], 'Three':[reg[4]], 'Two':[reg[5]], 'One':[reg[6]]}
+			df=pd.concat([df, pd.DataFrame.from_records(new_row)], ignore_index=True)
+
+
+	fig, ax = plt.subplots()
+	dias = ['-7 days', '-6 days', '-5 days', '-4 days', '-3 days', '-2 days', '-1 day']
+	regs = {'Index':[mean(df['Seven']), mean(df['Six']), mean(df['Five']), mean(df['Four']), 
+									 mean(df['Three']), mean(df['Two']), mean(df['One'])]}
+	ax.set_ylabel("Average weekly price change of the index")
+	ax.plot(dias, regs['Index'], linestyle = 'solid', color = 'b')
+	ax.fill_between(dias, regs['Index'], interpolate=True, color='c')
+
+	reg1 = mean(df['Seven']), mean(df['Six']), mean(df['Five']), mean(df['Four']), mean(df['Three']), mean(df['Two']), mean(df['One'])
+
+
+
+	ax.set_ylim(math.floor(min(reg1)),math.ceil(max(reg1)))
+	ax.set_yticks(range(math.floor(min(reg1)),math.ceil(max(reg1)+1)))
+
+	plt.savefig('static/plot.png')
+
+
+def pieChart(stocks):
+	fig, ax = plt.subplots()
+	symbols = []
+	weights = []
+	for s in stocks:
+		symbols.append(s.symbol)
+		weights.append(s.actualWeight)
+
+	plt.pie(weights, labels = symbols)
+	plt.title("Total composition adjusted to weights", bbox={'facecolor':'0.8', 'pad':5})
+	plt.savefig('static/pie.png')

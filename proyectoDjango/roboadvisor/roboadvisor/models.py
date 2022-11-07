@@ -111,7 +111,7 @@ class Stock(models.Model):
 
 
 class Order(models.Model):
-	stock = OneToOneField(Stock, on_delete=models.CASCADE)
+	stock = models.ForeignKey(Stock, on_delete=models.CASCADE, default=None)
 	quantity = models.FloatField()
 	date = models.DateField(default=timezone.now)
 	price = models.FloatField(default=0)
@@ -134,3 +134,7 @@ class Purchase(models.Model):
 
 	def __str__(self):
 		return self.nameCliente
+
+
+class UploadFile(models.Model):
+	file=models.FileField()

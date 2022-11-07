@@ -16,11 +16,13 @@ from .views import loadIndexes
 from .views import checkout
 from .views import payment
 from .views import pricing
-#from .views import rebalanceAll
+from .views import rebalanceAll
 from .views import signupView
 from .views import loginView
 from .views import logoutView
 from .views import home
+from .views import uploadFile
+from .views import deleteAccount
 
 urlpatterns = [
 	path('__debug__/', include('debug_toolbar.urls')),
@@ -39,11 +41,13 @@ urlpatterns = [
 	path('newInvestment_setIndex/<int:pk>/',newInvestment_setIndex, name='newInvestment_setIndex'),
 	path('showAccount/<int:pk>', showAccount, name='showAccount'),
 	path('loadIndexes/<int:pk>', loadIndexes, name='loadIndexes'),
+	path('deleteAccount/<int:pk>', deleteAccount, name='deleteAccount'),
 	path('checkout/', checkout),
 	path('payment/', payment),
 	path('pricing/', pricing),
-	#path('rebalanceAll/', rebalanceAll, name='rebalanceAll'),
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+	path('rebalanceAll/', rebalanceAll, name='rebalanceAll'),
+	path('uploadFile/<int:pk>', uploadFile, name='uploadFile'),
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
     import debug_toolbar

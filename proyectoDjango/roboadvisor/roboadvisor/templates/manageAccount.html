@@ -1,12 +1,24 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block header %}
+<style>
+.negativeBalanceChange {
+  color: #FF0000;
+}
+
+.positiveBalanceChange {
+  color: #00ab41;
+}</style>
+{% endblock %}
+
+
 {% block content %}
 
 
 <main>
   <div class="container-fluid px-4">
-    <h1 class="mt-4">Account</h1>
+    <h1 class="mt-4">Accounts</h1>
 
 
     <div class="card mb-4">
@@ -21,8 +33,11 @@
               <th>ID</th>
               <th>Name</th>
               <th>Index</th>
-              <th>Balance</th>
+              <th>Initial Investment</th>
+              <th>Portfolio Value</th>
+              <th>Balance Change Today</th>
               <th>Details</th>
+              <th>Delete</th>
             </tr>
           </thead>
 
@@ -31,8 +46,11 @@
               <th>ID</th>
               <th>Name</th>
               <th>Index</th>
-              <th>Balance</th>
+              <th>Initial Investment</th>
+              <th>Portfolio Value</th>
+              <th>Balance Change Today</th>
               <th>Details</th>
+              <th>Delete</th>
             </tr>
           </tfoot>
 
@@ -42,10 +60,26 @@
               <td>{{ account.id }}</td>
               <td>{{ account.name }}</td>
               <td>{{ account.index }}</td>
-              <td>{{ account.balance }}</td>
+              <td>{{ account.totalEquity }}$</td>
+              <td>{{ portfolioValue }}$</td>
+              <td>
+                {% if balanceChange < 0 %}
+                <div class="negativeBalanceChange"> 
+                {% else %} 
+                <div class="positiveBalanceChange">
+                {% endif %}
+                {{ balanceChange }}%
+                </div>
+              </td>
               <td>
                 <form action="/showAccount/{{account.id}}">
-                  <input type="submit" value="+" />
+                  <input type="submit" class="btn btn-secondary" value="+" />
+                </form>
+              </td>
+              <td>
+                <form action="{% url 'deleteAccount' pk=account.pk %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger" name='deleteAccount' value='deleteAccount'>-</button>
                 </form>
               </td>
 
@@ -72,7 +106,11 @@
         <div class="card bg-success text-white mb-4">
           <div class="card-body">Rebalance portfolio</div>
 
-          <a class="small text-white stretched-link" href="/rebalanceAll"></a>
+          <form action="{% url 'rebalanceAll' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" name='rebalanceAll' value='rebalanceAll'>Rebalance</button>
+          </form>
+
 
         </div>
       </div>
