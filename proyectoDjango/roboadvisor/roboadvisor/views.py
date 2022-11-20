@@ -3,12 +3,8 @@ from django.http import HttpResponse, JsonResponse
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect
 from django.conf import settings
-
-#from .forms import UserForm
-#from .models import User
 from .forms import AccountForm
 from .forms import UploadFileForm
-#from .models import UserModel
 from .models import Client
 from .models import Account
 from .models import Index
@@ -41,35 +37,10 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import math 
 from statistics import mean
-
+from django.contrib.auth.decorators import login_required
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-#class MyAuthBackend(object):
-#	def authenticate(self, email, password):    
-#		try:
-#			user = UserModel.objects.get(email=email)
-#			if user.check_password(password):
-#				return user
-#			else:
-#				return None
-#		except UserModel.DoesNotExist:
-#			logging.getLogger("error_logger").error("user with login %s does not exists " % login)
-#			return None
-#		except Exception as e:
-#			logging.getLogger("error_logger").error(repr(e))
-#			return None
-
-#	def get_user(self, user_id):
-#		try:
-#			user = UserModel.objects.get(sys_id=user_id)
-#			if user.is_active:
-#				return user
-#			return None
-#		except UserModel.DoesNotExist:
-#			logging.getLogger("error_logger").error("user with %(user_id)d not found")
-#			return None
 
 def signupView(request):
 	if request.method == "POST":
@@ -102,7 +73,6 @@ def logoutView(request):
 		logout(request)
 		return redirect("/home")
 
-
 def base(request):
 	user = request.user
 	print(user.is_authenticated)
@@ -111,76 +81,81 @@ def base(request):
 
 def home(request):
 	user = request.user
-	context = {"user": user}
+	check = user.is_authenticated
+	context = {"user": user, "check": check}
 	return render(request, 'home.html', context)
 
+@login_required(login_url='/login')
 def manageAccount(request):
 	user = request.user
 	user_id = user.id
 
 	accounts = Account.objects.filter(user_id=user_id)
-	portfolioValue = 0
-	balanceChange = 0
+	portfolioValues = []
+	balanceChanges = []
 
 	for a in accounts:
-		api = tradeapi.REST(
-		key_id=a.key_id,
-		secret_key=a.secret_key,
-		base_url='https://paper-api.alpaca.markets',
-		api_version='v2')
-		alpacaAccount = api.get_account()
-		portfolioValue = alpacaAccount.portfolio_value
-		balanceChange = float("{:.2f}".format((float(alpacaAccount.equity) - float(alpacaAccount.last_equity))/100))
-		
+		try:
+			api = tradeapi.REST(
+			key_id=a.key_id,
+			secret_key=a.secret_key,
+			base_url='https://paper-api.alpaca.markets',
+			api_version='v2')
+			alpacaAccount = api.get_account()
+			portfolioValues.append(alpacaAccount.portfolio_value)
+			balanceChanges.append(float("{:.2f}".format((float(alpacaAccount.equity) - float(alpacaAccount.last_equity))/100)))
+		except:
+			portfolioValues.append("UNLINKED")
+			balanceChanges.append(0)
 
-	context = {"accounts": accounts, "portfolioValue":portfolioValue, "balanceChange":balanceChange}
+
+	accPortBalance = zip(accounts, portfolioValues, balanceChanges)
+	
+	context = {"accPortBalance": accPortBalance}
 	return render(request, 'manageAccount.html', context)
 
-@login_required
+@login_required(login_url='/login')
 def newInvestment_setAccount(request):
-	selected_index = None
-	user = request.user
-	user_id = user.id
-	query = Account.objects.filter(user_id=user_id)
-	queryBool = query.exists()
-	account=None
-	key_id=None
-	secret_key=None
-
-
 	results = IndexShort.objects.all()
+	try:
+		user = request.user
+		account=None
+		if request.method == "POST":
+			if 'alpacaCredentials' in request.POST:
+				form = AccountForm(request.POST)
+				if form.is_valid():
+					try:
+						api = tradeapi.REST(request.POST.get('key_id'), request.POST.get('secret_key'), "https://paper-api.alpaca.markets", api_version='v2')
+						alpacaAccount = api.get_account()
+						account = form.save(commit=False)
+						account.user = request.user
+						account.balance = alpacaAccount.equity
+						account.totalEquity = alpacaAccount.equity
+						account.save()
+						context = {"account": account, "alpacaAccount": alpacaAccount}
+						return redirect("/newInvestment_setIndex/"+str(account.pk))
+						return render(request, 'newInvestment_setIndex.html')
+					except Exception as e:
+						form = AccountForm()
+						messages.add_message(request, messages.ERROR, "Credentials wrong. Please use the credentials of a new Alpaca account.")
+						context = {"form": form, "results": results}
+						return render(request, 'newInvestment_setAccount.html', context)
+		else:
+			form = AccountForm()
+			context = {"form": form, "results": results}
+			return render(request, 'newInvestment_setAccount.html', context)
 
-	if request.method == "POST":
-		if 'alpacaCredentials' in request.POST:
-			form = AccountForm(request.POST)
-			if form.is_valid():
-				try:
-					api = tradeapi.REST(request.POST.get('key_id'), request.POST.get('secret_key'), "https://paper-api.alpaca.markets", api_version='v2')
-					alpacaAccount = api.get_account()
-					account = form.save(commit=False)
-					account.user = request.user
-					account.balance = alpacaAccount.equity
-					account.totalEquity = alpacaAccount.equity
-					account.save()
-					context = {"account": account, "alpacaAccount": alpacaAccount}
-					return redirect("/newInvestment_setIndex/"+str(account.pk))
-					return render(request, 'newInvestment_setIndex.html')
-				except Exception as e:
-					#logger.exception('Error with: '+ str(e))
-					form = AccountForm()
-					messages.add_message(request, messages.ERROR, "Credentials already in use or wrong. Please use the credentials of a new Alpaca account.")
-					context = {"form": form, "results": results, "queryBool": queryBool}
-					return render(request, 'newInvestment_setAccount.html', context)
-
-					#return HttpResponseRedirect('manageAccount.html')  
-
-	else:
+	except Exception as e:
 		form = AccountForm()
-		context = {"form": form, "results": results, "queryBool": queryBool}
+		messages.add_message(request, messages.ERROR, "Fail to load. Please try again.")
+		context = {"form": form, "results": results}
 		return render(request, 'newInvestment_setAccount.html', context)
 		
+	form = AccountForm()
+	context = {"form": form, "results": results}
+	return render(request, 'newInvestment_setAccount.html', context)	
 		
-@login_required
+@login_required(login_url='/login')
 def newInvestment_setIndex(request, pk):
 
 	selected_index = None
@@ -204,17 +179,13 @@ def newInvestment_setIndex(request, pk):
 	cont=0
 
 	ind = Index.objects.filter(account_id= account.id)
-	print(ind)
 	booInd = ind.exists()
-	print(booInd)
 
 	if request.method == "POST":
 		if 'newInvestment_setIndex' in request.POST:
 			try:
 				selected_index = request.POST.get("index")
-				#indexShort =  IndexShort.objects.get(symbol=selected_index)
 				df =pd.read_csv(directorio+"/"+selected_index+'.csv')
-				#I = Index.objects.create(symbol=selected_index, marketCap='0', account=account)
 				all_symbols = df['Symbol']
 				symbols = []
 				market_caps = []
@@ -241,7 +212,7 @@ def newInvestment_setIndex(request, pk):
 							market_caps.append(marketCap)
 
 						except Exception as e:
-							messages.add_message(request, messages.ERROR, "Error with: "+ symbol + str(e))
+							messages.add_message(request, messages.ERROR, "Error with: "+ symbol + ": " + str(e))
 				else:
 					for item in all_symbols:
 						if contadorY>=iteraciones and contadorT<60:
@@ -271,11 +242,14 @@ def newInvestment_setIndex(request, pk):
 									
 							except Exception as e:
 								#time.sleep(35)
-								messages.add_message(request, messages.ERROR, "Error with: "+ symbol + str(e))
+								messages.add_message(request, messages.ERROR, "Error with: "+ symbol + ": " + str(e))
 				
 				total_market_cap = sum(market_caps)
 
 				I = Index.objects.create(symbol=selected_index, marketCap=total_market_cap, account=account)
+
+				for s in symbols:
+					s.replace('-', '.', 1)
 
 				tabla['Symbol'] = symbols
 				tabla['MarketCap'] = market_caps
@@ -296,37 +270,37 @@ def newInvestment_setIndex(request, pk):
 
 					apiV2 = tradeapi.REST(account.key_id, account.secret_key, 'https://paper-api.alpaca.markets', api_version='v2')
 
-					asset = apiV2.get_asset(tabla['Symbol'][i])
-					if asset.fractionable and cl>0:
-						alpaca.submit_order(
-						symbol=tabla['Symbol'][i],
-						qty=cl,
-						side="buy",
-						type="market",
-						time_in_force='day')
-						cont=cont+(cl*tabla['Price'][i])
-						O = Order.objects.create(stock=Stock.objects.create(symbol=tabla['Symbol'][i], lastPrice=tabla['Price'][i], marketCap=tabla['MarketCap'][i], actualWeight=tabla['Weight'][i], index=I), quantity=cl, price=tabla['Price'][i])
+					try:
+						asset = apiV2.get_asset(tabla['Symbol'][i])
 
-					if not asset.fractionable and math.floor(cl)>0:
-						alpaca.submit_order(
-						symbol=tabla['Symbol'][i],
-						qty=math.floor(cl),
-						side="buy",
-						type="market",
-						time_in_force='day')
-						cont=cont+(cl*tabla['Price'][i])
-						O = Order.objects.create(stock=Stock.objects.create(symbol=tabla['Symbol'][i], lastPrice=tabla['Price'][i], marketCap=tabla['MarketCap'][i], actualWeight=tabla['Weight'][i], index=I), quantity=cl, price=tabla['Price'][i])
+						if asset.fractionable and cl>0:
+							alpaca.submit_order(
+							symbol=tabla['Symbol'][i],
+							qty=cl,
+							side="buy",
+							type="market",
+							time_in_force='day')
+							cont=cont+(cl*tabla['Price'][i])
+							O = Order.objects.create(stock=Stock.objects.create(symbol=tabla['Symbol'][i], lastPrice=tabla['Price'][i], 
+								marketCap=tabla['MarketCap'][i], actualWeight=tabla['Weight'][i], index=I), quantity=cl, price=tabla['Price'][i])
 
-				#context = {"results": results, "account":account}
-				#return render(request, 'manageAccount.html')
-				#return redirect("/manageAccount/")
-				print(cont)
+						if not asset.fractionable and math.floor(cl)>0:
+							alpaca.submit_order(
+							symbol=tabla['Symbol'][i],
+							qty=math.floor(cl),
+							side="buy",
+							type="market",
+							time_in_force='day')
+							cont=cont+(cl*tabla['Price'][i])
+							O = Order.objects.create(stock=Stock.objects.create(symbol=tabla['Symbol'][i], lastPrice=tabla['Price'][i], 
+								marketCap=tabla['MarketCap'][i], actualWeight=tabla['Weight'][i], index=I), quantity=cl, price=tabla['Price'][i])
+					except:
+						pass
+
 				
 				return HttpResponseRedirect("/manageAccount/")
-					#S = Stock.objects.create(symbol=tabla['Symbol'][i], price=tabla['Price'][i], marketCap=tabla['MarketCap'][i], actualWeight=tabla['Weight'][i], index=I)
 			except Exception as e:
-				#logger.exception('Error with: '+ str(e))
-				messages.add_message(request, messages.ERROR, "This account already has an assigned index." + str(e))
+				messages.add_message(request, messages.ERROR, "Error with: " + str(e))
 				form = AccountForm()
 				context = {"form": form, "results": results, "account":account}
 				
@@ -339,7 +313,7 @@ def newInvestment_setIndex(request, pk):
 		return render(request, 'newInvestment_setIndex.html', context)
 
 
-
+@login_required(login_url='/login')
 def showAccount(request, pk):
 	user = request.user
 	user_id = user.id
@@ -351,6 +325,7 @@ def showAccount(request, pk):
 	orders = []
 	orders1 = []
 	symbols = []
+	dates = []
 	for s in stocks:
 		orders.append(Order.objects.filter(stock_id=s.id))
 		symbols.append(s.symbol)
@@ -358,8 +333,21 @@ def showAccount(request, pk):
 	for o in orders:
 		for i in range(0,len(o)):
 			orders1.append(o[i])
-
 	
+	for o1 in orders1:
+		dates.append(o1.date)
+
+	df = pd.DataFrame(dates, columns =['Date'])
+	df['Date'] = pd.to_datetime(df['Date'])
+	recentDate = datetime.strptime(df['Date'].max().strftime("%Y-%m-%d"), "%Y-%m-%d")
+	today = datetime.strptime((datetime.now()).strftime("%Y-%m-%d"), "%Y-%m-%d")
+	diff = str(today - recentDate).split(' ')
+	rebalanceBool=False
+	try:
+		rebalanceBool = int(diff[0]) > 7
+	except:
+		pass
+
 
 	numberStocks = stocks.count()
 
@@ -368,10 +356,10 @@ def showAccount(request, pk):
 
 	pieChart(stocks)
 
-	context = {"orders": orders1, "index":ind, "account":account, "numberStocks":numberStocks}
+	context = {"orders": orders1, "index":ind, "account":account, "numberStocks":numberStocks, "recentDate": recentDate, "rebalanceBool": rebalanceBool}
 	return render(request, 'showAccount.html' , context)
 
-@login_required
+@login_required(login_url='/login')
 def loadIndexesData(request):
 	directorio = settings.MEDIA_ROOT
 	list=[]
@@ -393,7 +381,7 @@ def loadIndexesData(request):
 			if i not in list2:
 				I = IndexShort.objects.create(symbol=i)
 
-@login_required
+@login_required(login_url='/login')
 def loadIndexes(request, pk):
 
 	if request.method=='POST':     
@@ -403,12 +391,12 @@ def loadIndexes(request, pk):
 	else:
 		return redirect("/newInvestment_setIndex/"+str(pk))
 
-@login_required
+@login_required(login_url='/login')
 def listIndexes(request):
 	results = IndexShort.objects.all()
 	return render(request, 'manageAccount.html',{'results':results})
 
-
+@login_required(login_url='/login')
 def rebalanceAll(request):
 	user = request.user
 	user_id = user.id
@@ -494,7 +482,7 @@ def rebalanceAll(request):
 								except Exception as e:
 									messages.add_message(request, messages.ERROR, "Error with: "+ symbol + str(e))
 						else:
-							for item in all_symbols:
+							for item in stocks:
 								if contadorY>=iteraciones and contadorT<60:
 									time.sleep(61-contadorT)
 									contadorT=0
@@ -558,9 +546,8 @@ def rebalanceAll(request):
 						listSells=[]
 
 						print(tabla)
-						print("						")
-						print("						")
-						print("						")
+						print("-------------------------------------------------------")
+						print("-------------------------------------------------------")
 
 						for item in tabla.index:
 							if tabla['Difference'][item]<0:
@@ -571,19 +558,21 @@ def rebalanceAll(request):
 							sellTable = pd.concat([sellTable, pd.DataFrame.from_records(i)], ignore_index=True)
 
 						print(sellTable)
+						print("-------------------------------------------------------")
 
 						#ventas = tabla[tabla['Difference'].startswith("-")]
 						#print(ventas)
-						buyTable = tabla.set_index('Symbol').subtract(sellTable.set_index('Symbol'), fill_value=0)
+						buyTable = (tabla.set_index('Symbol').subtract(sellTable.set_index('Symbol'), fill_value=0)).reset_index()
+						buyTable = buyTable.drop(buyTable[buyTable['Market Cap'] == 0.0].index).set_index('Symbol').reset_index()
 						print(buyTable)
-						print("						")
-						print("						")
-						print("						")
+						print("-------------------------------------------------------")
+						print("-------------------------------------------------------")
 
 
 						#VENTAS
 
 						for i in sellTable.index:
+							print(i)
 							cl=(abs(sellTable['Difference'][i])*float(a.balance)/100/(sellTable['Actual Prices'][i]+sellTable['Actual Prices'][i]*comissionPerBuy))
 
 							asset = apiV2.get_asset(sellTable['Symbol'][i])
@@ -595,7 +584,7 @@ def rebalanceAll(request):
 								side="sell",
 								type="market",
 								time_in_force='day')
-								print(sellTable['Symbol'][i], cl, "Sell done")
+								print(sellTable['Symbol'][i], "Quantity: ", cl, "Sell done")
 								#cont=cont+(cl*sellTable['Price'][i])
 
 								O = Order.objects.create(stock=Stock.objects.get(symbol=sellTable['Symbol'][i]), quantity=-cl, price=sellTable['Actual Prices'][i])
@@ -603,7 +592,6 @@ def rebalanceAll(request):
 								s1.actualWeight=sellTable['Actual Weight'][i]
 								print(s1, s1.actualWeight)
 								s1.save()
-								print(O)
 
 							if not asset.fractionable and math.floor(cl)>0:
 								alpaca.submit_order(
@@ -612,7 +600,7 @@ def rebalanceAll(request):
 								side="sell",
 								type="market",
 								time_in_force='day')
-								print(sellTable['Symbol'][i], cl, "Sell done")
+								print(sellTable['Symbol'][i], "Quantity: ", cl, "Sell done")
 								#cont=cont+(cl*sellTable['Price'][i])
 
 								O = Order.objects.create(stock=Stock.objects.get(symbol=sellTable['Symbol'][i]), quantity=-cl, price=sellTable['Actual Prices'][i])
@@ -620,11 +608,9 @@ def rebalanceAll(request):
 								s1.actualWeight=sellTable['Actual Weight'][i]
 								print(s1, s1.actualWeight)
 								s1.save()
-								print(O)
 
 						for i in buyTable.index:
 							cl=(buyTable['Difference'][i]*float(a.balance)/100/(buyTable['Actual Prices'][i]+buyTable['Actual Prices'][i]*comissionPerBuy))
-
 
 							asset = apiV2.get_asset(buyTable['Symbol'][i])
 							if asset.fractionable and cl>0:
@@ -634,13 +620,12 @@ def rebalanceAll(request):
 								side="buy",
 								type="market",
 								time_in_force='day')
-								cont=cont+(cl*buyTable['Price'][i])
+								print(buyTable['Symbol'][i],"Quantity: ", cl, "Buy done")
+								#cont=cont+(cl*buyTable['Price'][i])
 								O = Order.objects.create(stock=Stock.objects.get(symbol=buyTable['Symbol'][i]), quantity=cl, price=buyTable['Actual Prices'][i])
 								s1 = Stock.objects.get(symbol=buyTable['Symbol'][i])
 								s1.actualWeight=buyTable['Actual Weight'][i]
-								print(s1, s1.actualWeight)
 								s1.save()
-								print(O)
 
 							if not asset.fractionable and math.floor(cl)>0:
 								alpaca.submit_order(
@@ -649,30 +634,34 @@ def rebalanceAll(request):
 								side="buy",
 								type="market",
 								time_in_force='day')
-								cont=cont+(cl*buyTable['Price'][i])
+								print(buyTable['Symbol'][i],"Quantity: ", cl, "Buy done")
+								#cont=cont+(cl*buyTable['Price'][i])
 								O = Order.objects.create(stock=Stock.objects.get(symbol=buyTable['Symbol'][i]), quantity=cl, price=buyTable['Actual Prices'][i])
 								s1 = Stock.objects.get(symbol=buyTable['Symbol'][i])
 								s1.actualWeight=buyTable['Actual Weight'][i]
-								print(s1, s1.actualWeight)
 								s1.save()
-								print(O)
+
 
 						return redirect("/manageAccount/")
 						return render(request, 'manageAccount.html', context)
 
 						#S = Stock.objects.create(symbol=tabla['Symbol'][i], price=tabla['Price'][i], marketCap=tabla['MarketCap'][i], actualWeight=tabla['Weight'][i], index=I)
+
+				messages.add_message(request, messages.ERROR, "There are not accounts to rebalance.")
+				return redirect("/manageAccount/")
+				return render(request, 'manageAccount.html', context)
 			except Exception as e:
 				#logger.exception('Error with: '+ str(e))
-				messages.add_message(request, messages.ERROR, "Error rebalancing." + str(e))
+				messages.add_message(request, messages.ERROR, "Error rebalancing:" + str(e))
 				accounts = Account.objects.filter(user_id=user_id)
-				context = {"accounts": accounts, "tabla":tabla}
+				context = {"accounts": accounts}
 				
 				return redirect("/manageAccount/")
 				return render(request, 'manageAccount.html', context)
 
 
 
-@login_required
+@login_required(login_url='/login')
 def checkout(request):
 	user = request.user
 	user_id = user.id
@@ -692,13 +681,13 @@ def checkout(request):
 		context = {"boo":boo}
 		return render(request, 'checkout.html', context)
 
-@login_required
+
 def pricing(request):
 	user = request.user
 	context = {"user": user}
 	return render(request, 'pricing.html', context)
 
-
+@login_required(login_url='/login')
 def payment(request):
 	try:
 		user = request.user
@@ -842,7 +831,7 @@ class CaptureOrder(PayPalClient):
 		return response
 
 
-
+@login_required(login_url='/login')
 def uploadFile(request, pk):
 	if request.method == 'POST':
 		file2 = request.FILES['file']
@@ -853,6 +842,7 @@ def uploadFile(request, pk):
 	else:
 		return redirect("/newInvestment_setIndex/"+str(pk))
 
+@login_required(login_url='/login')
 def deleteAccount(request, pk):
 	if request.method == 'POST':
 		account = Account.objects.get(id=pk).delete()
@@ -870,14 +860,16 @@ def chart7D(stocks, api):
 
 	today = datetime.now().strftime('%Y-%m-%d')
 	yesterday = (datetime.now()- timedelta(days=1)).strftime('%Y-%m-%d')
-	sevenDaysAgo = (datetime.now()- timedelta(days=10)).strftime('%Y-%m-%d')
+	sevenDaysAgo = (datetime.now()- timedelta(days=12)).strftime('%Y-%m-%d')
 
 	for s in stocks:
 			reg = []
 
 			for i in range(0,7):
-					#reg.append((api.get_bars(s.symbol, TimeFrame.Day, sevenDaysAgo, yesterday, adjustment='raw').df['close'][i])*s.actualWeight)
+				try:
 					reg.append((yf.download(s.symbol, start=sevenDaysAgo, end=yesterday, progress=False)['Close'][i])*s.actualWeight)
+				except:
+					pass
 
 			new_row = {'Symbol':[s.symbol], 'Seven':[reg[0]], 'Six':[reg[1]], 'Five':[reg[2]], 'Four':[reg[3]], 'Three':[reg[4]], 'Two':[reg[5]], 'One':[reg[6]]}
 			df=pd.concat([df, pd.DataFrame.from_records(new_row)], ignore_index=True)
@@ -900,7 +892,6 @@ def chart7D(stocks, api):
 
 	plt.savefig('static/plot.png')
 
-
 def pieChart(stocks):
 	fig, ax = plt.subplots()
 	symbols = []
@@ -909,6 +900,19 @@ def pieChart(stocks):
 		symbols.append(s.symbol)
 		weights.append(s.actualWeight)
 
-	plt.pie(weights, labels = symbols)
+	df = pd.DataFrame(data = {'Symbols': symbols, 'Weights': weights}).sort_values('Weights', ascending = False)
+
+	df2 = df[:9].copy()
+
+	new_row = pd.DataFrame(data = {
+	'Symbols' : ['Others'],
+	'Weights' : [df['Weights'][9:].sum()]})
+
+	df2 = pd.concat([df2, new_row])
+
+	plt.pie(df2['Weights'], labels = df2['Symbols'])
 	plt.title("Total composition adjusted to weights", bbox={'facecolor':'0.8', 'pad':5})
 	plt.savefig('static/pie.png')
+
+
+	

@@ -1,13 +1,62 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block header %}
+ <style>
+.form-center {
+  display:flex;
+  justify-content: center;
+}</style>
+{% endblock %}
+
+
+
 {% block content %}
 
+                <main>
 
-<form class="site-form" action="/login/" method="post">
-{% csrf_token %}
-{{form}}
-<input type="submit" value="Login">
-</form>
+
+                    <div class="container">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-5">
+                                <div class="card shadow-lg border-0 rounded-lg mt-5">
+                                    <div class="card-header"><h3 class="text-center font-weight-light my-4">Login</h3></div>
+                                    <div class="card-body">
+                                    	<div class="form-center">
+                                        <form class="site-form" action="/login/" method="post">
+										{% csrf_token %}
+										<h5>Username</h5>
+										{{form.username}}
+									</br>
+									</br>
+										<h5>Password</h5>
+										{{form.password}}
+									</br></br>
+									{% if form.errors %}
+                                        {% for field in form %}
+                                            {% for error in field.errors %}
+                                                {{ error|escape }}
+                                                </br>
+                                            {% endfor %}
+                                        {% endfor %}
+                                        {% for error in form.non_field_errors %}
+                                            {{ error|escape }}
+                                            </br>
+                                        {% endfor %}
+                                    {% endif %}
+									</br>
+										<input type="submit" value="Login">
+										</form>
+									</div>
+                                    </div>
+                                    <div class="card-footer text-center py-3">
+                                        <div class="small"><a href="/signup">Need an account? Sign up!</a></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
 
 {% endblock %}

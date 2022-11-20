@@ -37,12 +37,19 @@
         <h3>{{index.marketCap}}M$</h3>
       </br>
 
-      <h2>Initial investment:</h2>
-      <h3>{{account.totalEquity}}</h3>
+      <h2>Number of stocks:</h2>
+      <h3>{{numberStocks}}</h3>
     </br>
+    <h2>Last day of purchase:</h2>
+    <h3>{{recentDate}}</h3>
 
-    <h2>Number of stocks:</h2>
-    <h3>{{numberStocks}}</h3>
+    {% if rebalanceBool %}
+    <form action="/rebalance/{{account.id}}">
+      <input type="submit" class="btn btn-info" value="Rebalance" />
+    </form>
+    {% endif %}
+
+    
 </div>
 </div>
 

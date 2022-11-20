@@ -11,7 +11,6 @@ from .views import manageAccount
 from .views import newInvestment_setAccount
 from .views import newInvestment_setIndex
 from .views import showAccount
-from .views import listIndexes
 from .views import loadIndexes
 from .views import checkout
 from .views import payment
@@ -26,7 +25,7 @@ from .views import deleteAccount
 
 urlpatterns = [
 	path('__debug__/', include('debug_toolbar.urls')),
-	path('', RedirectView.as_view(url=reverse_lazy('login'))),
+	path('', views.home),
 	path('admin/', admin.site.urls),
 	#path('base/', views.base),
 	path('home/', views.home),
@@ -48,9 +47,3 @@ urlpatterns = [
 	path('rebalanceAll/', rebalanceAll, name='rebalanceAll'),
 	path('uploadFile/<int:pk>', uploadFile, name='uploadFile'),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-if settings.DEBUG:
-    import debug_toolbar
-    urlpatterns = [
-        path('__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns

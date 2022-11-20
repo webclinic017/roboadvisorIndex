@@ -9,7 +9,8 @@
 
 .positiveBalanceChange {
   color: #00ab41;
-}</style>
+}
+</style>
 {% endblock %}
 
 
@@ -17,9 +18,9 @@
 
 
 <main>
+
   <div class="container-fluid px-4">
     <h1 class="mt-4">Accounts</h1>
-
 
     <div class="card mb-4">
       <div class="card-header">
@@ -55,26 +56,47 @@
           </tfoot>
 
           <tbody>
-            {% for account in accounts %}
+            {% for account, portfolioValues, balanceChanges in accPortBalance %}
             <tr>
               <td>{{ account.id }}</td>
               <td>{{ account.name }}</td>
-              <td>{{ account.index }}</td>
-              <td>{{ account.totalEquity }}$</td>
-              <td>{{ portfolioValue }}$</td>
+              {% if account.index == "" %}
               <td>
-                {% if balanceChange < 0 %}
+                <form action="/newInvestment_setIndex/{{account.id}}">
+                  <input type="submit" class="btn btn-warning" value="Assign" />
+                </form>
+              </td>
+              {% else %}
+              <td>{{ account.index }}</td>
+              {% endif %}
+
+              <td>{{ account.totalEquity }}$</td>
+              <td>
+              {% if portfolioValues == "UNLINKED" %}
+              <div class="negativeBalanceChange">
+              {{ portfolioValues }}</td>
+              </div>
+              {% else %}
+              {{ portfolioValues }}$
+              {% endif %}
+              <td>
+                {% if balanceChanges < 0 %}
                 <div class="negativeBalanceChange"> 
                 {% else %} 
                 <div class="positiveBalanceChange">
                 {% endif %}
-                {{ balanceChange }}%
+                {{ balanceChanges }}%
                 </div>
               </td>
               <td>
-                <form action="/showAccount/{{account.id}}">
-                  <input type="submit" class="btn btn-secondary" value="+" />
+                {% if account.index != "" %}
+                <form class = "showAccount" action="/showAccount/{{account.id}}">
+                  <!--<input type="submit" class="btn btn-secondary" id='btnFetch' value="+" />-->
+                  <button type="submit" class="btn btn-secondary btnFetch">+</button>
                 </form>
+                {% else %}
+                
+                {% endif %}
               </td>
               <td>
                 <form action="{% url 'deleteAccount' pk=account.pk %}" method="post">
@@ -101,25 +123,18 @@
         </div>
       </div>
 
-
-      <div class="col-xl-3 col-md-6">
-        <div class="card bg-success text-white mb-4">
-          <div class="card-body">Rebalance portfolio</div>
-
-          <form action="{% url 'rebalanceAll' %}" method="post">
-            {% csrf_token %}
-            <button type="submit" name='rebalanceAll' value='rebalanceAll'>Rebalance</button>
-          </form>
-
-
-        </div>
-      </div>
+      {% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+    </ul>
+{% endif %}
     </div>
 
   </div>
 
 </div>
-
 
 </main>
 
@@ -127,3 +142,4 @@
 
 
 {% endblock %}
+

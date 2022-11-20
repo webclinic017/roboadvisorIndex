@@ -23,4 +23,16 @@ window.addEventListener('DOMContentLoaded', event => {
         });
     }
 
+
+    //const buttonLoader = document.body.querySelector(".btnFetch");
+    //if (buttonLoader){
+        //buttonLoader.addEventListener('click', event => {
+            //alert("Hola");
+        //});
+    //}
 });
+
+
+
+
+

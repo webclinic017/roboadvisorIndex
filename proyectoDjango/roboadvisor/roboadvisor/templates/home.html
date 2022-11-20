@@ -1,9 +1,55 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block header %}
+ <style>
+.image-container {
+  display:flex;
+  justify-content: center;
+}</style>
+{% endblock %}
+
 {% block content %}
 
 
-<h1>Página principal</h1>
+<main>
+  <div class="container-fluid px-4">
+  	</br>
+    <div class="image-container"><img style="max-width: 100%" src="{% static 'robot.png' %}"></div>
+    </br></br></br>
+
+    <h3>Welcome to Roboadvisor, the platform that helps you invest your money in the index fund desired with ease. With our simple and user-friendly interface, you can quickly and easily access the markets, view data and make trades. We offer a wide range of features and tools to help you make the most of your trading experience and our team is always on hand to provide support and guidance.</h3>
+
+    </br></br>
+
+      {% if not check %}
+    <div class="row">
+      <div class="col-xl-3 col-md-6">
+        <div class="card bg-primary text-white mb-4">
+          <div class="card-body">Signup</div>
+
+          <a class="small text-white stretched-link" href="/signup"></a>
+
+        </div>
+      </div>
+
+
+      <div class="col-xl-3 col-md-6">
+        <div class="card bg-success text-white mb-4">
+          <div class="card-body">Login</div>
+
+          <a class="small text-white stretched-link" href="/login"></a>
+
+        </div>
+      </div>
+      </div>
+      {% else %}
+      <h1>Hello again, {{user.username}}.</h1>
+      {% endif %}
+
+
+
+      </div>
+  </main>
 
 {% endblock %}
