@@ -7,3 +7,17 @@ en mi caso: C:\Users\Josema\Desktop\roboadvisorIndex-6\ejecutable\proyectoDjango
 3- Ejecutar el comando "python manage.py runserver" para iniciar el lanzamiento.
 
 4- Entrar a la dirección de despliegue, en mi caso "http://127.0.0.1:8000/"
+
+En este caso ya está la BBDD creada y modificada. Si se quiere ejecutar desde 0 
+sería necesarion los siguientes comandos:
+
+python manage.py runserver			Iniciar servidor
+python manage.py startapp roboadvisor			Abrir nuevo proyecto
+python manage.py createsuperuser		Crear super usuario
+python manage.py migrate roboadvisor			Migrar app
+
+
+Para hacer la BBDD:
+1-makemigrations
+2-migrate roboadvisor
+3-migrate
