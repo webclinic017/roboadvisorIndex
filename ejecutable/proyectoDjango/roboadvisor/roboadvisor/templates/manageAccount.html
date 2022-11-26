@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block header %}
+<style>
+.negativeBalanceChange {
+  color: #FF0000;
+}
+
+.positiveBalanceChange {
+  color: #00ab41;
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+
+<main>
+
+  <div class="container-fluid px-4">
+    <h1 class="mt-4">Accounts</h1>
+
+    <div class="card mb-4">
+      <div class="card-header">
+        <i class="fas fa-table me-1"></i>
+        Table
+      </div>
+      <div class="card-body">
+        <table id="datatablesSimple">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Index</th>
+              <th>Initial Investment</th>
+              <th>Portfolio Value</th>
+              <th>Balance Change Today</th>
+              <th>Details</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+
+          <tfoot>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Index</th>
+              <th>Initial Investment</th>
+              <th>Portfolio Value</th>
+              <th>Balance Change Today</th>
+              <th>Details</th>
+              <th>Delete</th>
+            </tr>
+          </tfoot>
+
+          <tbody>
+            {% for account, portfolioValues, balanceChanges in accPortBalance %}
+            <tr>
+              <td>{{ account.id }}</td>
+              <td>{{ account.name }}</td>
+              {% if account.index == "" %}
+              <td>
+                <form action="/newInvestment_setIndex/{{account.id}}">
+                  <input type="submit" class="btn btn-warning" value="Assign" />
+                </form>
+              </td>
+              {% else %}
+              <td>{{ account.index }}</td>
+              {% endif %}
+
+              <td>{{ account.totalEquity }}$</td>
+              <td>
+              {% if portfolioValues == "UNLINKED" %}
+              <div class="negativeBalanceChange">
+              {{ portfolioValues }}</td>
+              </div>
+              {% else %}
+              {{ portfolioValues }}$
+              {% endif %}
+              <td>
+                {% if balanceChanges < 0 %}
+                <div class="negativeBalanceChange"> 
+                {% else %} 
+                <div class="positiveBalanceChange">
+                {% endif %}
+                {{ balanceChanges }}%
+                </div>
+              </td>
+              <td>
+                {% if account.index != "" %}
+                <form class = "showAccount" action="/showAccount/{{account.id}}">
+                  <!--<input type="submit" class="btn btn-secondary btnFetch" value="+" />-->
+                  <button type="submit" class="btn btn-secondary btnFetch">+</button>
+                </form>
+                {% else %}
+                
+                {% endif %}
+              </td>
+              <td>
+                <form action="{% url 'deleteAccount' pk=account.pk %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger" name='deleteAccount' value='deleteAccount'>-</button>
+                </form>
+              </td>
+
+            </tr>
+            {% endfor %}
+          </tbody>
+
+        </table>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-xl-3 col-md-6">
+        <div class="card bg-primary text-white mb-4">
+          <div class="card-body">New Account-Index</div>
+
+          <a class="small text-white stretched-link" href="/newInvestment_setAccount"></a>
+
+        </div>
+      </div>
+
+      {% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+    </ul>
+{% endif %}
+    </div>
+
+  </div>
+
+</div>
+
+</main>
+
+
+
+
+{% endblock %}
+

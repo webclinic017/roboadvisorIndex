@@ -1,0 +1,5 @@
+1- Instalar conda
+
+2- Ir a la carpeta de código con Anaconda Prompt, en mi caso: "cd C:\Users\Josema\Desktop\TFG\código"
+
+3- Ejecutar el comando "pip install -r requirements.txt"
