@@ -1,8 +1,8 @@
 1- Ir a la carpeta roboadvisor dentro de ejecutable\proyectoDjango\roboadvisor y copiar la dirección, 
-en mi caso: C:\Users\Josema\Desktop\roboadvisorIndex-6\ejecutable\proyectoDjango\roboadvisor
+en mi caso: C:\Users\Josema\Desktop\roboadvisorIndex-7\ejecutable\proyectoDjango\roboadvisor
 
 2- Ir a esa dirección en la consola de Python con el comando cd:
-"cd C:\Users\Josema\Desktop\roboadvisorIndex-6\ejecutable\proyectoDjango\roboadvisor"
+"cd C:\Users\Josema\Desktop\roboadvisorIndex-7\ejecutable\proyectoDjango\roboadvisor"
 
 3- Ejecutar el comando "python manage.py runserver" para iniciar el lanzamiento.
 
