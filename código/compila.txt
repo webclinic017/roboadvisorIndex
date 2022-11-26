@@ -1,5 +1,5 @@
 1- Tener una consola de comandos con Python como Anaconda Prompt.
 
-2- Ir a la carpeta de código con Anaconda Prompt, en mi caso: "cd C:\Users\Josema\Desktop\roboadvisorIndex-1\código"
+2- Ir a la carpeta de código con Anaconda Prompt, en mi caso: "cd C:\Users\Josema\Desktop\roboadvisorIndex-5\código"
 
 3- Ejecutar el comando "pip install -r requirements.txt"
