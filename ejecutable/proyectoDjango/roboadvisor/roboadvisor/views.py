@@ -344,10 +344,9 @@ def showAccount(request, pk):
 	recentDate = datetime.strptime(df['Date'].max().strftime("%Y-%m-%d"), "%Y-%m-%d")
 	today = datetime.strptime((datetime.now()).strftime("%Y-%m-%d"), "%Y-%m-%d")
 	diff = str(today - recentDate).split(' ')
-	rebalanceBool=True
+	rebalanceBool=False
 	try:
-		#rebalanceBool = int(diff[0]) > 7
-		rebalanceBool=True
+		rebalanceBool = int(diff[0]) > 7
 	except:
 		pass
 
