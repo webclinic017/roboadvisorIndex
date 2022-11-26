@@ -11,9 +11,9 @@ en mi caso: C:\Users\Josema\Desktop\roboadvisorIndex-6\ejecutable\proyectoDjango
 En este caso ya está la BBDD creada y modificada. Si se quiere ejecutar desde 0 
 sería necesarion los siguientes comandos:
 
-python manage.py runserver			Iniciar servidor
+python manage.py runserver			          Iniciar servidor
 python manage.py startapp roboadvisor			Abrir nuevo proyecto
-python manage.py createsuperuser		Crear super usuario
+python manage.py createsuperuser		      Crear super usuario
 python manage.py migrate roboadvisor			Migrar app
 
 
