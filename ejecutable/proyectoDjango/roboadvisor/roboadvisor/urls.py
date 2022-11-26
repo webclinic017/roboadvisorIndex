@@ -24,7 +24,6 @@ from .views import uploadFile
 from .views import deleteAccount
 
 urlpatterns = [
-	path('__debug__/', include('debug_toolbar.urls')),
 	path('', views.home),
 	path('admin/', admin.site.urls),
 	#path('base/', views.base),
