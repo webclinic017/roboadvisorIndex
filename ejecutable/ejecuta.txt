@@ -1,12 +1,19 @@
 1- Ir a la carpeta roboadvisor dentro de ejecutable\proyectoDjango\roboadvisor y copiar la dirección, 
-en mi caso: C:\Users\Josema\Desktop\roboadvisorIndex-7\ejecutable\proyectoDjango\roboadvisor
+en mi caso: C:\Users\Josema\Desktop\roboadvisorIndex-8\ejecutable\proyectoDjango\roboadvisor
 
 2- Ir a esa dirección en la consola de Python con el comando cd:
-"cd C:\Users\Josema\Desktop\roboadvisorIndex-7\ejecutable\proyectoDjango\roboadvisor"
+"cd C:\Users\Josema\Desktop\roboadvisorIndex-8\ejecutable\proyectoDjango\roboadvisor"
 
 3- Ejecutar el comando "python manage.py runserver" para iniciar el lanzamiento.
 
 4- Entrar a la dirección de despliegue, en mi caso "http://127.0.0.1:8000/"
+
+Credenciales:
+Email Alpaca: pruebajosvolgon@hotmail.com
+Contraseña Alpaca: prueba123$$$
+
+Email Paypal: sb-wkz3221511195@personal.example.com
+Contraseña Paypal: NUVa3<uF
 
 En este caso ya está la BBDD creada y modificada. Si se quiere ejecutar desde 0 
 sería necesarion los siguientes comandos:
