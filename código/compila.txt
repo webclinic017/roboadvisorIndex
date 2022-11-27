@@ -1,7 +1,9 @@
 1- Tener una consola de comandos con Python. Se recomienda la instalación de Anaconda debido a que trae paquetes
 propios que pueden no haberse tenido en cuenta en los requerimientos. Usamos Anaconda Prompt.
+Lo podemos descargar para Windows en el siguiente enlance: https://docs.anaconda.com/anaconda/install/windows/
+En la primera opción "Download the Anaconda installer"
 
-2- Ir a la carpeta de código con Anaconda Prompt, en mi caso: "cd C:\Users\Josema\Desktop\roboadvisorIndex-8\código"
+2- Ir a la carpeta de código con Anaconda Prompt, en mi caso: "cd C:\Users\Josema\Desktop\roboadvisorIndex-9\código"
 
 3- Ejecutar el comando "pip install -r requirements.txt"
 
