@@ -1,5 +1,8 @@
-1- Tener una consola de comandos con Python como Anaconda Prompt.
+1- Tener una consola de comandos con Python. Se recomienda la instalación de Anaconda debido a que trae paquetes
+propios que pueden no haberse tenido en cuenta en los requerimientos. Usamos Anaconda Prompt.
 
 2- Ir a la carpeta de código con Anaconda Prompt, en mi caso: "cd C:\Users\Josema\Desktop\roboadvisorIndex-8\código"
 
 3- Ejecutar el comando "pip install -r requirements.txt"
+
+4- Ir a ejecutable/ejecuta.txt y seguir los pasos.
